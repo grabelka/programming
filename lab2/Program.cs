@@ -3,294 +3,134 @@ using static System.Console;
 
 namespace lab2
 {
-    delegate void CalcHandle(Calculator calculator, CalcEventArgs args);
-    class CalcEventArgs : EventArgs
+    delegate void PacmanHandle(Pacman pacman, PacmanEventArgs args);
+    class PacmanEventArgs : EventArgs
     {
-        public string name;
-        public int skills;
-        public CalcEventArgs(string name, int skills)
+        public int seconds;
+        public PacmanEventArgs(int seconds)
         {
-            this.name = name;
-            this.skills = skills;
+            this.seconds = seconds;
         }
     }
-    interface IMath
+    abstract class AbstrackPacman
     {
-        void Print();
-        void Calculate();
-        void GetConsts();
+        public string color;
+        protected int skils;
+        public abstract void Eat(IFruit fruit);
+        public abstract void Info();
     }
-    interface IRoot
+    interface IFruit
     {
-        double GetNum();
-        double PowNum();
-        void CreateCalc(Calculator calculator, CalcEventArgs args);
+        int GetPower();
+        void Disappear();
+        void WasEaten(Pacman pacman, PacmanEventArgs args);
     }
-    abstract class MyMath : IMath, IDisposable
+    interface ICoords
     {
-        protected bool disposed;
-        static protected readonly double pi;
-        static protected readonly double e;
-        static MyMath()
+        int GetX();
+        int GetY();
+    }
+    class Pacman : AbstrackPacman, ICoords
+    {
+        public event PacmanHandle PacmanEatEvent;
+        int x;
+        int y;
+        public Pacman(string color, int x, int y)
         {
-            pi = Math.PI; 
-            e = Math.E;
+            this.color = color;
+            this.skils = 0;
+            this.x = x;
+            this.y = y;
         }
-        public void GetConsts()
+        public int GetX()
         {
-            WriteLine($"pi is {pi}, e is {e}.");
+            return x;
         }
-        void IMath.GetConsts()
+        public int GetY()
         {
-            WriteLine("I know no constants");
+            return y;
         }
-        public abstract void Print();
-        public abstract void Calculate();
-        public abstract void Dispose();
-        protected void CleanUp(bool disposing)
+        public override void Eat(IFruit fruit)
         {
-            if(!this.disposed)
-            {
-                if (disposing)
-                {
-                    WriteLine("Disposing managed resourses.");
-                }
-                WriteLine("Disposing unmanaged resourses.");
-                disposed = true;
-            }
+            skils+=fruit.GetPower();
+            PacmanEventArgs args = new PacmanEventArgs(13);
+            PacmanEatEvent((Pacman)this, args);
         }
-        ~MyMath()
+        public override void Info()
         {
-            CleanUp(false);
-            WriteLine("MyMath destructed");
+            WriteLine($"Packman has {color} color and skills {skils}");
         }
     }
-    class Calculator : MyMath 
-    { 
-        public event CalcHandle CalculatorEvent;
-        private static string createdOn;
-        public Calculator() 
-        { 
-            createdOn = DateTime.Now.ToLongTimeString();
-        } 
-        public override void Print() 
-        {
-            WriteLine($"I'm created at {createdOn}.");
-        }
-        public override void Calculate() 
-        {
-            CalcEventArgs args = new CalcEventArgs("Bimo", 10);
-            if(CalculatorEvent != null) CalculatorEvent(this, args);
-        }
-        public override void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            CleanUp(true);
-            GC.ReRegisterForFinalize(this);
-        }
-        ~Calculator() 
-        {
-            WriteLine("Calculator destructed");
-        }
-    }
-    class Add : MyMath
+    class Apple : IFruit, ICoords
     {
-        protected int a;
-        protected int b;
-        public Add(int a, int b)
+        protected int power;
+        protected int x;
+        protected int y;
+        public Apple(int x, int y)
         {
-            this.a = a;
-            this.b = b;
+            this.power = 10;
+            this.x = x;
+            this.y = y;
         }
-        public Add(int a)
+        public virtual void WasEaten(Pacman pacman, PacmanEventArgs args)
         {
-            this.a = a;
-            this.b = Convert.ToInt32(pi);
-        }
-        public Add()
-        {
-            this.a = Convert.ToInt32(pi);
-            this.b = Convert.ToInt32(e);
-        }
-        private int Calc()
-        {
-            return a + b;
-        }
-        public override void Calculate() 
-        {
-            WriteLine($"{a} + {b} = " + Calc());
-        }
-        public override void Print()
-        {
-            WriteLine("Result is: " + Calc());
-        }
-        public override void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            CleanUp(true);
-            GC.ReRegisterForFinalize(this);
-        }
-        ~Add()
-        {
-            WriteLine("Add destructed");
-        }
-    }
-    class Sub : Add
-    {
-        public Sub(int a, int b) : base(a, b)
-        {}
-        public Sub(int a) : base(a)
-        {}
-        public Sub() : base()
-        {}
-        public int Calc()
-        {
-            return a - b;
-        }
-        public override void Calculate() 
-        {
-            WriteLine($"{a} - {b} = " + Calc());
-        }public override void Print()
-        {
-            WriteLine("Result is: " + Calc());
-        }
-        public override void Dispose()
-        {
-            CleanUp(true);
-            GC.SuppressFinalize(this);
-        }
-        ~Sub()
-        {
-            CleanUp(false);
-            WriteLine("Sub destructed");
-        }
-    }
-    class SquereRoot : MyMath, IRoot
-    {
-        protected double a;
-        public double A 
-        {
-            get
-            {
-                if(this.a != default) return Math.Sqrt(a);
-                else return 0;
-            }
-            set 
-            {
-                if (value > 0)
-                {
-                    this.a = value;
-                }
-            }
-        }
-        public double GetNum()
-        {
-            return a;
-        }
-        public virtual double PowNum()
-        {
-            return 2;
-        }
-        public virtual void CreateCalc(Calculator calculator, CalcEventArgs args)
-        {
-            if(args.skills >= 10)
-            {
-                WriteLine($"{args.name} can calculate. My skills is {args.skills}");
-                calculator.GetConsts();
-            }
+            if (args.seconds < 10)
+                Console.WriteLine("Apple was eaten very quickly by " + pacman.color + " pacman.");
             else
-            {
-                WriteLine($"{args.name} can't calculate. My skills is {args.skills}, but must be bigger than 10");
-                calculator.Print();
-            }
+                Console.WriteLine("Apple wasn't eaten very quickly by " + pacman.color + " pacman.");
         }
-        public override void Calculate() 
+        public int GetPower()
         {
-            WriteLine(A);
+            return this.power;
         }
-        public override void Print()
+        public int GetX()
         {
-            WriteLine($"Squere root of {a} is {A}");
+            return this.x;
         }
-        public override void Dispose()
+        public int GetY()
         {
-            GC.SuppressFinalize(this);
-            CleanUp(true);
-            GC.ReRegisterForFinalize(this);
+            return this.y;
         }
-        ~SquereRoot()
+        public virtual void Disappear()
         {
-            WriteLine("SquereRoot destructed");
+            WriteLine($"Apple with power {power} was disappeared in coordinates ({x}, {y}).");
         }
-    } 
-    class Root : SquereRoot
+        void IFruit.Disappear()
+        {
+            WriteLine("Some fruit was disappeared.");
+        }
+    }
+    class Peach : Apple
     {
-        private double b;
-        public double B 
+        public Peach(int x, int y) : base(x, y)
         {
-            get
-            {
-                if(this.b != default) return Math.Pow(a, 1/b);
-                else return 0;
-            }
-            set 
-            {
-                if (value > 0)
-                {
-                    this.b = value;
-                }
-            }
+            this.power = 30;
         }
-        public override double PowNum()
+        public override void WasEaten(Pacman pacman, PacmanEventArgs args)
         {
-            return b;
-        }
-        public override void Calculate() 
-        {
-            WriteLine(B);
-        }
-        public override void CreateCalc(Calculator calculator, CalcEventArgs args)
-        {
-            if(args.skills >= 15)
-            {
-                WriteLine($"{args.name} can calculate. My skills is {args.skills}");
-                calculator.GetConsts();
-            }
+            if (args.seconds < 20)
+                Console.WriteLine("Peach was eaten very quickly by " + pacman.color + " pacman.");
             else
-            {
-                WriteLine($"{args.name} can't calculate. My skills is {args.skills}, but must be bigger than 15");
-                calculator.Print();
-            } 
+                Console.WriteLine("Peach wasn't eaten very quickly by " + pacman.color + " pacman.");
         }
-        public override void Print()
+        public override void Disappear()
         {
-            WriteLine($"Root of {a} is {B}");
+            WriteLine($"Peach with power {power} was disappeared in coordinates ({x}, {y}).");
         }
-        public override void Dispose()
-        {
-            GC.SuppressFinalize(this);
-            CleanUp(true);
-            GC.ReRegisterForFinalize(this);
-        }
-        ~Root()
-        {
-            WriteLine("Root destructed");
-        }    
     }
-    class Space 
+    class Game
     {
-        IRoot[] roots;
-        public Space(Calculator calculator)
+        IFruit[] fruits;
+        public Game(Pacman pacman)
         {
-            roots = new IRoot[2];
-            roots[0] = new SquereRoot();
-            roots[1] = new Root();
-            foreach(IRoot r in roots)
-            {
-                calculator.CalculatorEvent += new CalcHandle(r.CreateCalc);
-            }
+            fruits = new IFruit[2];
+            fruits[0] = new Apple(3, 7);
+            fruits[1] = new Peach(1, 2);
+            foreach (IFruit f in fruits)
+                pacman.PacmanEatEvent += new PacmanHandle(f.WasEaten);
         }
     }
+
     class Person
     {
         public string name;
@@ -303,7 +143,7 @@ namespace lab2
         public void Drink()
         {
             if(age < 18) throw new PersonException(this);
-            WriteLine($"{this.name} drink vodka.");
+            WriteLine($"{this.name} drinks vodka.");
         }
     }
     class PersonException : Exception
@@ -313,52 +153,48 @@ namespace lab2
         {
             this.args = args;
         }
-        public override string Message => $"Person {args.name} is too young. Come back in {18 - args.age}";
+        public override string Message => $"{args.name} is too young. Come back in {18 - args.age} years.";
     }
     static class MyExtentions
     {
-        public static void Announce(this Sub sub)
+        public static double VectorLength(this Pacman pacman)
         {
-            WriteLine("This is extention method");
+            return Math.Sqrt(pacman.GetX()*pacman.GetX()+pacman.GetY()*pacman.GetY());
         }
-        public static int SubTwice(this Sub sub, int c)
+        public static void GetCoords(this Pacman pacman)
         {
-            return sub.Calc() - c;
-        }
-        public static int SubAdd(this Sub sub, int c)
-        {
-            return sub.Calc() + c;
+            WriteLine($"This is an extention method. Pacman has coordinates ({pacman.GetX()}, {pacman.GetY()}).");
         }
     }
     class Program
     {
         static void Main(string[] args)
         {
-            Add add = new Add(42);
-            ((IMath)add).GetConsts();
-            add.GetConsts();
+            //1
+            Apple a = new Apple(4, 2);
+            ((IFruit)a).Disappear();
+            a.Disappear();
+            Peach p = new Peach(7, 8);
+            ((IFruit)p).Disappear();
+            p.Disappear();
             WriteLine("");
 
-            Calculator calculator = new Calculator();
-            Space space = new Space(calculator);
-            calculator.Calculate();
+            //2-4
+            Pacman pacman = new Pacman("red", 7, 5);
+            Game game = new Game(pacman);
+            pacman.Eat(a);
             WriteLine("");
 
-            CalcEventArgs calcArgs = new CalcEventArgs("Pipi", 17);
-            CalcHandle calcHandle = delegate(Calculator calculator, CalcEventArgs calcAgs)
+            //4
+            PacmanEventArgs pacmanArgs = new PacmanEventArgs(30);
+            PacmanHandle pacmanHandle = delegate(Pacman pacman, PacmanEventArgs pacmanArgs)
             {
-                if(calcArgs.skills >= 15)
-                {
-                    WriteLine($"{calcArgs.name} can calculate. My skills is {calcArgs.skills}");
-                    calculator.GetConsts();
-                }
+                if (pacmanArgs.seconds < 50)
+                    Console.WriteLine("Anonymous method by " + pacman.color + " pacman was very quickly.");
                 else
-                {
-                    WriteLine($"{calcArgs.name} can't calculate. My skills is {calcArgs.skills}, but must be bigger than 15");
-                    calculator.Print();
-                }
+                    Console.WriteLine("Anonymous method by " + pacman.color + " pacman wasn't very quickly.");
             };
-            calcHandle(calculator, calcArgs);
+            pacmanHandle(pacman, pacmanArgs);
             WriteLine("");
 
             Action<string> line = name => Console.WriteLine("{0} invoked an action", name);
@@ -366,13 +202,8 @@ namespace lab2
             line("Anastasia");
             WriteLine(result(3,8));
             WriteLine("");
-        
-            Sub sub = new Sub(15, 7);
-            sub.Announce();
-            WriteLine(sub.SubTwice(2));
-            WriteLine(sub.SubAdd(2));
-            WriteLine("");
 
+            //5
             Person p1 = new Person("John", 16);
             try
             {
@@ -387,6 +218,11 @@ namespace lab2
                 Person p2 = new Person("Mike", 19);
                 p2.Drink();
             }
+            WriteLine("");
+
+            //6
+            pacman.GetCoords();
+            WriteLine(pacman.VectorLength());
         }
     }
 }
