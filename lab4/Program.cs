@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 
 namespace lab4
 {
@@ -8,9 +11,13 @@ namespace lab4
         //task1
         class Student
         {
-            int id;
-            string name;
-            string surname;
+            [JsonInclude]
+            public int id;
+            [JsonInclude]
+            public string name;
+            [JsonInclude]
+            public string surname;
+            public Student() {}
             public Student(int id, string name, string surname)
             {
                 this.id = id;
@@ -24,8 +31,11 @@ namespace lab4
         }
         abstract class Prototype 
         {
+            [JsonInclude]
             public int GroupCode { get; private set; }
-            protected List<Student> students;
+            [JsonInclude]
+            public List<Student> students;
+            public Prototype() {}
             public Prototype(int groupCode)
             {
                 this.GroupCode = groupCode;
@@ -39,6 +49,7 @@ namespace lab4
 
         class GroupOfStudents : Prototype
         {
+            public GroupOfStudents() {}
             public GroupOfStudents(int groupCode) : base(groupCode)
             {}
             public override void AddStudent(Student student)
@@ -47,7 +58,7 @@ namespace lab4
             }
             public override void RemoveStudent(Student student)
             {
-                students.Remove(student);
+                students.Remove(students[student.id - 1]);
             }
             public override void Print()
             {
@@ -59,13 +70,12 @@ namespace lab4
             }
             public override Prototype Clone()
             {
-                GroupOfStudents groupClone = this.MemberwiseClone() as GroupOfStudents;
-                groupClone.students = new List<Student>();
-                foreach(Student s in students)
+                var options = new JsonSerializerOptions
                 {
-                    groupClone.AddStudent(s);
-                }
-                return groupClone;
+                    IncludeFields = true,
+                };
+                string jsonString = JsonSerializer.Serialize(this, options);
+                return JsonSerializer.Deserialize<GroupOfStudents>(jsonString, options);
             }
         }
         //task2
@@ -193,7 +203,9 @@ namespace lab4
             GroupOfStudents groupForDecanate = (GroupOfStudents) groupOfStudents.Clone();
             groupForDecanate.AddStudent(new Student(4, "Sophia", "Novikova"));
 
-            Console.WriteLine("Original group:");
+            Console.WriteLine("Original list equels to list for polyclinic " + (groupOfStudents==groupForPolyclinic));
+
+            Console.WriteLine("\nOriginal group:");
             groupOfStudents.Print();
             Console.WriteLine("\nGroup for polyclinic:");
             groupForPolyclinic.Print();
